@@ -1,0 +1,48 @@
+<nav aria-label="分页" class="mt-4">
+  <ul class="pagination justify-content-center">
+
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="{% url url_name %}?page=1{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}">« 首</a>
+      </li>
+      <li class="page-item">
+        <a class="page-link" href="{% url url_name %}?page={{ page_obj.previous_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}">‹</a>
+      </li>
+    {% else %}
+      <li class="page-item disabled"><span class="page-link">« 首</span></li>
+      <li class="page-item disabled"><span class="page-link">‹</span></li>
+    {% endif %}
+
+    {% for num in page_obj.paginator.page_range %}
+      {% if num == page_obj.number %}
+        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+      {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+        <li class="page-item">
+          <a class="page-link" href="{% url url_name %}?page={{ num }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}">{{ num }}</a>
+        </li>
+      {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="{% url url_name %}?page={{ page_obj.next_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}">›</a>
+      </li>
+      <li class="page-item">
+        <a class="page-link" href="{% url url_name %}?page={{ page_obj.paginator.num_pages }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}">尾 »</a>
+      </li>
+    {% else %}
+      <li class="page-item disabled"><span class="page-link">›</span></li>
+      <li class="page-item disabled"><span class="page-link">尾 »</span></li>
+    {% endif %}
+  </ul>
+
+  <!-- 跳转输入框 -->
+  <form class="d-flex justify-content-center" method="get" style="max-width:220px;">
+    <input name="page" type="number" min="1" max="{{ page_obj.paginator.num_pages }}"
+           class="form-control me-2" placeholder="页码">
+    <button class="btn btn-outline-secondary">跳转</button>
+    {% for k,v in request.GET.items %}
+      {% if k != 'page' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}
+    {% endfor %}
+  </form>
+</nav>

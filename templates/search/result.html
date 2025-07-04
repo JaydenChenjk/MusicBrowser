@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}搜索结果{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">“{{ q }}” 的搜索结果 ({{ page_obj.paginator.count }})</h2>
+<p class="text-muted">耗时 {{ elapsed|floatformat:2 }} ms</p>
+
+<div class="row row-cols-2 row-cols-md-4 g-4">
+  {% for item in page_obj %}
+    {% if mode == 'song' %}
+      <div class="col">
+        <a href="{% url 'music:song_detail' item.id %}" class="text-decoration-none text-dark">
+          <div class="card h-100 shadow-sm">
+            <img src="{{ item.cover_img.url }}" class="card-img-top"
+                 alt="{{ item.name }}" onerror="this.src='/static/placeholder.png'">
+            <div class="card-body">
+              <h6 class="card-title">{{ item.name }}</h6>
+              <small class="text-muted">{{ item.artist.name }}</small>
+            </div>
+          </div>
+        </a>
+      </div>
+    {% else %}
+      <div class="col">
+        <a href="{% url 'music:artist_detail' item.id %}" class="text-decoration-none text-dark">
+          <div class="card h-100 shadow-sm">
+            <img src="{{ item.profile_img.url }}" class="card-img-top"
+                 alt="{{ item.name }}" onerror="this.src='/static/placeholder.png'">
+            <div class="card-body text-center">
+              <h6 class="card-title">{{ item.name }}</h6>
+            </div>
+          </div>
+        </a>
+      </div>
+    {% endif %}
+  {% empty %}
+    <p>没有搜索到任何结果。</p>
+  {% endfor %}
+</div>
+
+{% include 'partials/pager.html' with page_obj=page_obj url_name='music:search' %}
+{% endblock %}

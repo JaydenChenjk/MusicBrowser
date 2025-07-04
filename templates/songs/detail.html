@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}{{ song.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-4">
+    <img src="{{ song.cover_img.url }}" class="img-fluid rounded"
+         alt="{{ song.name }}" onerror="this.src='/static/placeholder.png'">
+  </div>
+  <div class="col-md-8">
+    <h3>{{ song.name }}</h3>
+    <p>歌手：
+       <a href="{% url 'music:artist_detail' song.artist.id %}">{{ song.artist.name }}</a>
+    </p>
+    <p><a href="{{ song.source_url }}" target="_blank">原始网站 ↗</a></p>
+
+    <h5>歌词</h5>
+    <pre class="bg-light p-3 rounded">{{ song.lyrics }}</pre>
+  </div>
+</div>
+
+<hr>
+<h4>评论</h4>
+<form method="post" class="mb-3">
+  {% csrf_token %}
+  {{ form.text }}
+  <button class="btn btn-primary mt-2">提交</button>
+</form>
+
+<ul class="list-group">
+  {% for c in comments %}
+    <li class="list-group-item d-flex justify-content-between align-items-start">
+      <div>
+        <small class="text-muted">{{ c.created_at|date:"Y-m-d H:i" }}</small><br>
+        {{ c.text }}
+      </div>
+      <form method="post" action="{% url 'music:delete_comment' c.id %}">
+        {% csrf_token %}
+        <button class="btn btn-sm btn-danger">删除</button>
+      </form>
+    </li>
+  {% empty %}
+    <li class="list-group-item">暂无评论。</li>
+  {% endfor %}
+</ul>
+{% endblock %}

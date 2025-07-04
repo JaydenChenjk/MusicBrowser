@@ -1,0 +1,9 @@
+/* 全局背景 */
+body { background-color: #f8f9fa; }
+
+/* 歌词换行 */
+pre { white-space: pre-wrap; word-break: break-word; }
+
+/* 卡片阴影微调 */
+.card { transition: transform .1s ease-in-out; }
+.card:hover { transform: translateY(-4px); }

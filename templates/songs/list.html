@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}歌曲列表{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">歌曲列表</h2>
+
+<div class="row row-cols-1 row-cols-md-2 g-4">
+  {% for song in page_obj %}
+    <div class="col">
+      <a class="text-decoration-none text-dark" href="{% url 'music:song_detail' song.id %}">
+        <div class="card h-100 shadow-sm">
+          <img src="{{ song.cover_img.url }}" class="card-img-top"
+               alt="{{ song.name }}" onerror="this.src='/static/placeholder.png'">
+          <div class="card-body">
+            <h5 class="card-title">{{ song.name }}</h5>
+            <p class="card-text"><small class="text-muted">{{ song.artist.name }}</small></p>
+          </div>
+        </div>
+      </a>
+    </div>
+  {% empty %}
+    <p>暂无歌曲。</p>
+  {% endfor %}
+</div>
+
+{% include 'partials/pager.html' with page_obj=page_obj url_name='music:song_list' %}
+
+{% endblock %}

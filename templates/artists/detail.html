@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}{{ artist.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <img src="{{ artist.profile_img.url }}" class="rounded me-3"
+       alt="{{ artist.name }}" style="width:150px"
+       onerror="this.src='/static/placeholder.png'">
+  <div>
+    <h3>{{ artist.name }}</h3>
+    <p><a href="{{ artist.source_url }}" target="_blank">原始网站 ↗</a></p>
+  </div>
+</div>
+
+<h5>简介</h5>
+<p>{{ artist.biography|linebreaks }}</p>
+
+<h4 class="mt-4">歌曲</h4>
+<div class="row row-cols-1 row-cols-md-3 g-4">
+  {% for s in songs %}
+    <div class="col">
+      <a href="{% url 'music:song_detail' s.id %}" class="text-decoration-none text-dark">
+        <div class="card h-100 shadow-sm">
+          <img src="{{ s.cover_img.url }}" class="card-img-top"
+               alt="{{ s.name }}" onerror="this.src='/static/placeholder.png'">
+          <div class="card-body">
+            <h6 class="card-title">{{ s.name }}</h6>
+          </div>
+        </div>
+      </a>
+    </div>
+  {% empty %}
+    <p>暂无歌曲。</p>
+  {% endfor %}
+</div>
+{% endblock %}
