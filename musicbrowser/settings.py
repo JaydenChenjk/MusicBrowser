@@ -47,7 +47,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"         # 用于存歌手/歌曲图片
+MEDIA_ROOT = BASE_DIR / "output"         # 用于存歌手/歌曲图片
 
 TIME_ZONE = 'Asia/Shanghai'    # 时区设置
 USE_TZ = True

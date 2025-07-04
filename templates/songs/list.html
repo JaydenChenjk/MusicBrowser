@@ -9,8 +9,8 @@
     <div class="col">
       <a class="text-decoration-none text-dark" href="{% url 'music:song_detail' song.id %}">
         <div class="card h-100 shadow-sm">
-          <img src="{{ song.cover_img.url }}" class="card-img-top"
-               alt="{{ song.name }}" onerror="this.src='/static/placeholder.png'">
+          <img src="{{ song.cover_img.url|default_if_none:'/static/placeholder.png' }}" class="card-img-top"
+               alt="{{ song.name }}">
           <div class="card-body">
             <h5 class="card-title">{{ song.name }}</h5>
             <p class="card-text"><small class="text-muted">{{ song.artist.name }}</small></p>

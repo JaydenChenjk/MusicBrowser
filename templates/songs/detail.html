@@ -4,8 +4,8 @@
 {% block content %}
 <div class="row">
   <div class="col-md-4">
-    <img src="{{ song.cover_img.url }}" class="img-fluid rounded"
-         alt="{{ song.name }}" onerror="this.src='/static/placeholder.png'">
+    <img src="{{ song.cover_img.url|default_if_none:'/static/placeholder.png' }}" class="img-fluid rounded"
+         alt="{{ song.name }}">
   </div>
   <div class="col-md-8">
     <h3>{{ song.name }}</h3>
