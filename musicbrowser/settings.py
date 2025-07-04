@@ -1,11 +1,13 @@
 from pathlib import Path
+import os
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "hello_Django"
 DEBUG = True
 ALLOWED_HOSTS = []
 
-INSTALLED_APPS = [  # Django启用的apps
+INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -15,7 +17,7 @@ INSTALLED_APPS = [  # Django启用的apps
     "music",           
 ]
 
-MIDDLEWARE = [  # Django请求的中间件
+MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -25,9 +27,9 @@ MIDDLEWARE = [  # Django请求的中间件
 ]
 
 ROOT_URLCONF = "musicbrowser.urls"
-TEMPLATES = [{  # Django模板配置
+TEMPLATES = [{
     "BACKEND": "django.template.backends.django.DjangoTemplates",
-    "DIRS": [BASE_DIR / "templates"],   # 全局模板目录
+    "DIRS": [BASE_DIR / "templates"],
     "APP_DIRS": True,
     "OPTIONS": {"context_processors": [
         "django.template.context_processors.debug",
@@ -36,20 +38,26 @@ TEMPLATES = [{  # Django模板配置
         "django.contrib.messages.context_processors.messages",
     ]},
 }]
-WSGI_APPLICATION = "musicbrowser.wsgi.application"    # WSGI应用入口
+WSGI_APPLICATION = "musicbrowser.wsgi.application"
 
-DATABASES = {   # 数据库配置
+DATABASES = {
     "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}
 }
 
-STATIC_URL = "/static/"     # 配置静态文件
+# 静态文件配置
+STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
-
+# 媒体文件配置 - 关键修改
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "output"         # 用于存歌手/歌曲图片
+MEDIA_ROOT = BASE_DIR / "output"
 
-TIME_ZONE = 'Asia/Shanghai'    # 时区设置
+# 文件上传设置
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20MB
+
+# 时区设置
+TIME_ZONE = 'Asia/Shanghai'
 USE_TZ = True
 
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"    # 默认的主键字段类型
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
