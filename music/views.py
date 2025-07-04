@@ -7,14 +7,12 @@ from .models import Song, Artist, Comment
 from .forms import CommentForm, SearchForm
 
 
-def _paginate(request, queryset, per_page=20):
+def _paginate(request, queryset, per_page=20):      # 分页功能
     page_number = request.GET.get("page", "1")
     paginator = Paginator(queryset, per_page)
     page_obj  = paginator.get_page(page_number)
     return page_obj
 
-
-# --- 歌曲 ---
 
 def song_list(request):
     search_form = SearchForm(request.GET)
@@ -23,7 +21,6 @@ def song_list(request):
         "page_obj": page_obj,
         "search_form": search_form,
     })
-
 
 def song_detail(request, pk):
     song = get_object_or_404(Song.objects.select_related("artist"), pk=pk)
