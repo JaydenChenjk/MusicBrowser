@@ -13,19 +13,13 @@ def artist_profile_path(instance, filename):
     return f"artist_images/{filename}"
 
 def song_cover_path(instance, filename):
-    """生成歌曲封面的存储路径"""
-    # 使用slugify处理中文字符，避免路径问题
+    """生成歌曲封面的存储路径（只按歌曲名一级目录）"""
     ext = filename.split('.')[-1] or 'jpg'
-    safe_artist_name = slugify(instance.artist.name, allow_unicode=True)
     safe_song_name = slugify(instance.name, allow_unicode=True)
-    
-    if not safe_artist_name:
-        safe_artist_name = f"artist_{instance.artist.id}"
     if not safe_song_name:
         safe_song_name = f"song_{instance.id}"
-    
     filename = f"{safe_song_name}.{ext}"
-    return f"song_images/{safe_artist_name}/{filename}"
+    return f"song_images/{filename}"
 
 class Artist(models.Model):     
     name = models.CharField(max_length=200, db_index=True)

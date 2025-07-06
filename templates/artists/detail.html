@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
+{% load music_extras %}
 {% block title %}{{ artist.name }}{% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-center mb-4">
-  <img src="{{ artist.profile_img.url|default_if_none:'/static/placeholder.png' }}" class="rounded me-3"
-       alt="{{ artist.name }}" style="width:150px">
+  <img src="{{ artist.profile_img|safe_media_url }}" class="rounded me-3"
+       alt="{{ artist.name }}" style="width:150px" onerror="this.src='/static/placeholder.png'">
   <div>
     <h3>{{ artist.name }}</h3>
     <p><a href="{{ artist.source_url }}" target="_blank">原始网站 ↗</a></p>
@@ -20,8 +21,8 @@
     <div class="col">
       <a href="{% url 'music:song_detail' s.id %}" class="text-decoration-none text-dark">
         <div class="card h-100 shadow-sm">
-          <img src="{{ s.cover_img.url|default_if_none:'/static/placeholder.png' }}" class="card-img-top"
-               alt="{{ s.name }}">
+          <img src="{{ s.cover_img|safe_media_url }}" class="card-img-top"
+               alt="{{ s.name }}" onerror="this.src='/static/placeholder.png'">
           <div class="card-body">
             <h6 class="card-title">{{ s.name }}</h6>
           </div>

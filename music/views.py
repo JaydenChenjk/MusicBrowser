@@ -11,7 +11,7 @@ from django.conf import settings
 from django.contrib import messages
 from .models import Song, Artist, Comment
 from .forms import CommentForm, SearchForm
-
+from django.utils.text import slugify
 
 def _paginate(request, queryset, per_page=20):
     page_number = request.GET.get("page", "1")
@@ -64,7 +64,7 @@ def song_detail(request, pk):
     search_form = SearchForm(request.GET)
     return render(request, "songs/detail.html", {
         "song": song,
-        "form": comment_form,  # 修复：使用 'form' 而不是 'comment_form'
+        "form": comment_form,
         "comments": comments,
         "search_form": search_form,
     })
@@ -156,7 +156,7 @@ def search(request):
 def add_songs_from_json(request):
     """
     从项目根目录的 songs.json 文件读取数据并添加到数据库
-    改进版本：更好的错误处理和数据验证
+    修复版本：解决图片路径和歌手匹配问题
     """
     # 构建 songs.json 文件的绝对路径
     json_file_path = os.path.join(settings.BASE_DIR, 'songs.json')
@@ -172,6 +172,7 @@ def add_songs_from_json(request):
         return HttpResponse(f"读取文件时发生错误：{str(e)}", status=500)
 
     songs_added_count = 0
+    songs_updated_count = 0
     songs_exist_count = 0
     songs_error_count = 0
     error_details = []
@@ -189,56 +190,105 @@ def add_songs_from_json(request):
                 songs_error_count += 1
                 continue
             
+            # === 生成标准化的图片路径 ===
+            safe_artist_name = slugify(song_data['artist_name'], allow_unicode=True)
+            if not safe_artist_name:  # 处理全中文名无法slugify的情况
+                safe_artist_name = f"artist_{hash(song_data['artist_name']) % 10000}"
+            
+            safe_song_name = slugify(song_data['name'], allow_unicode=True)
+            if not safe_song_name:  # 处理全中文名无法slugify的情况
+                safe_song_name = f"song_{hash(song_data['name']) % 10000}"
+            
+            profile_img_path = f"artist_images/{safe_artist_name}.jpg"
+            cover_img_path = f"song_images/{safe_song_name}.jpg"
+            
+            # 检查图片文件是否真实存在
+            profile_img_exists = os.path.exists(os.path.join(settings.MEDIA_ROOT, profile_img_path))
+            cover_img_exists = os.path.exists(os.path.join(settings.MEDIA_ROOT, cover_img_path))
+            
             # 处理歌手URL，去除查询参数以避免重复
             artist_source_url = song_data['source_url'].split('?')[0]
             
-            # 查找或创建歌手
-            artist, created = Artist.objects.get_or_create(
-                source_url=artist_source_url,
-                defaults={
-                    'name': song_data['artist_name'],
-                    'biography': song_data.get('biography', ''),
-                    'profile_img': song_data.get('profile_img', '')
-                }
-            )
-            
-            # 如果歌手已存在但信息不完整，则更新
-            if not created:
+            # === 严格按照 songs.json 中的 artist_name 查找或创建歌手 ===
+            artist = Artist.objects.filter(name=song_data['artist_name']).first()
+            if not artist:
+                # 创建新歌手
+                artist = Artist.objects.create(
+                    name=song_data['artist_name'],
+                    biography=song_data.get('biography', ''),
+                    profile_img=profile_img_path if profile_img_exists else '',
+                    source_url=artist_source_url
+                )
+                print(f"创建新歌手: {artist.name}")
+            else:
+                # 更新现有歌手信息
                 updated = False
-                if not artist.biography and song_data.get('biography'):
-                    artist.biography = song_data['biography']
+                if not artist.profile_img and profile_img_exists:
+                    artist.profile_img = profile_img_path
                     updated = True
-                if not artist.profile_img and song_data.get('profile_img'):
-                    artist.profile_img = song_data['profile_img']
+                if not artist.source_url:
+                    artist.source_url = artist_source_url
+                    updated = True
+                if not artist.biography and song_data.get('biography'):
+                    artist.biography = song_data.get('biography', '')
                     updated = True
                 if updated:
                     artist.save()
+                    print(f"更新歌手信息: {artist.name}")
 
-            # 处理歌词：如果是列表则合并，如果是字符串则直接使用
+            # === 处理歌词 ===
             if isinstance(song_data['lyrics'], list):
                 lyrics = '\n'.join(song_data['lyrics'])
             else:
                 lyrics = str(song_data['lyrics'])
 
-            # 查找或创建歌曲
-            song, created = Song.objects.get_or_create(
-                source_url=song_data['source_url'],
-                defaults={
-                    'name': song_data['name'],
-                    'artist': artist,
-                    'lyrics': lyrics,
-                    'cover_img': song_data.get('cover_img', '')
-                }
-            )
-
-            if created:
+            # === 查找或创建歌曲 ===
+            song = Song.objects.filter(source_url=song_data['source_url']).first()
+            if not song:
+                # 创建新歌曲
+                song = Song.objects.create(
+                    name=song_data['name'],
+                    artist=artist,
+                    lyrics=lyrics,
+                    cover_img=cover_img_path if cover_img_exists else '',
+                    source_url=song_data['source_url']
+                )
                 songs_added_count += 1
-                print(f"已添加新歌曲: {song.name} - {artist.name}")
+                print(f"创建新歌曲: {song.name} - {artist.name}")
             else:
-                songs_exist_count += 1
+                # 更新现有歌曲
+                updated = False
+                
+                # 确保歌曲关联到正确的歌手
+                if song.artist.name != song_data['artist_name']:
+                    song.artist = artist
+                    updated = True
+                    print(f"修正歌曲歌手: {song.name} 从 {song.artist.name} 到 {artist.name}")
+                
+                # 更新歌曲名称（如果不同）
+                if song.name != song_data['name']:
+                    song.name = song_data['name']
+                    updated = True
+                
+                # 更新歌词
+                if song.lyrics != lyrics:
+                    song.lyrics = lyrics
+                    updated = True
+                
+                # 更新封面图片
+                if not song.cover_img and cover_img_exists:
+                    song.cover_img = cover_img_path
+                    updated = True
+                
+                if updated:
+                    song.save()
+                    songs_updated_count += 1
+                    print(f"更新歌曲: {song.name} - {artist.name}")
+                else:
+                    songs_exist_count += 1
                 
         except Exception as e:
-            error_msg = f"第{i+1}首歌曲处理失败: {str(e)}"
+            error_msg = f"第{i+1}首歌曲处理失败 ({song_data.get('name', '未知')}): {str(e)}"
             error_details.append(error_msg)
             songs_error_count += 1
             print(f"错误: {error_msg}")
@@ -248,6 +298,7 @@ def add_songs_from_json(request):
     <h2>数据导入完成</h2>
     <ul>
         <li>成功添加新歌曲: {songs_added_count} 首</li>
+        <li>更新歌曲信息: {songs_updated_count} 首</li>
         <li>已存在歌曲: {songs_exist_count} 首</li>
         <li>处理失败: {songs_error_count} 首</li>
     </ul>
@@ -255,12 +306,30 @@ def add_songs_from_json(request):
     
     if error_details:
         result_html += "<h3>错误详情：</h3><ul>"
-        for error in error_details[:10]:  # 只显示前10个错误
+        for error in error_details[:20]:  # 显示前20个错误
             result_html += f"<li>{error}</li>"
-        if len(error_details) > 10:
-            result_html += f"<li>... 还有 {len(error_details) - 10} 个错误</li>"
+        if len(error_details) > 20:
+            result_html += f"<li>... 还有 {len(error_details) - 20} 个错误</li>"
         result_html += "</ul>"
     
+    # 检查图片文件情况
+    result_html += "<h3>图片文件检查：</h3><ul>"
+    artist_img_dir = os.path.join(settings.MEDIA_ROOT, "artist_images")
+    song_img_dir = os.path.join(settings.MEDIA_ROOT, "song_images")
+    
+    if os.path.exists(artist_img_dir):
+        artist_img_count = len([f for f in os.listdir(artist_img_dir) if f.endswith('.jpg')])
+        result_html += f"<li>歌手图片文件: {artist_img_count} 个</li>"
+    else:
+        result_html += "<li>歌手图片目录不存在</li>"
+    
+    if os.path.exists(song_img_dir):
+        song_img_count = len([f for f in os.listdir(song_img_dir) if f.endswith('.jpg')])
+        result_html += f"<li>歌曲图片文件: {song_img_count} 个</li>"
+    else:
+        result_html += "<li>歌曲图片目录不存在</li>"
+    
+    result_html += "</ul>"
     result_html += f'<p><a href="/">返回首页</a></p>'
     
     return HttpResponse(result_html)
