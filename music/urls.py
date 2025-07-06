@@ -13,4 +13,5 @@ urlpatterns = [
     path("comments/<int:pk>/delete/", views.delete_comment, name="delete_comment"),   # 删除评论
 
     path("search/", views.search, name="search"),      # 搜索结果页
+    path("add_songs/", views.add_songs_from_json, name="add_songs"),
 ]

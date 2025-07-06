@@ -5,7 +5,7 @@
 <div class="row">
   <div class="col-md-4">
     <img src="{{ song.cover_img.url|default_if_none:'/static/placeholder.png' }}" class="img-fluid rounded"
-         alt="{{ song.name }}">
+         alt="{{ song.name }}" onerror="this.src='/static/placeholder.png'">
   </div>
   <div class="col-md-8">
     <h3>{{ song.name }}</h3>
@@ -21,26 +21,54 @@
 
 <hr>
 <h4>评论</h4>
+
+<!-- 评论表单 -->
 <form method="post" class="mb-3">
   {% csrf_token %}
-  {{ form.text }}
-  <button class="btn btn-primary mt-2">提交</button>
+  <div class="mb-3">
+    <label for="{{ form.text.id_for_label }}" class="form-label">{{ form.text.label }}</label>
+    {{ form.text }}
+    {% if form.text.errors %}
+      <div class="text-danger">
+        {% for error in form.text.errors %}
+          <small>{{ error }}</small>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+  <button type="submit" class="btn btn-primary">提交评论</button>
 </form>
 
-<ul class="list-group">
+<!-- 评论列表 -->
+<div class="comments-section">
   {% for c in comments %}
-    <li class="list-group-item d-flex justify-content-between align-items-start">
-      <div>
-        <small class="text-muted">{{ c.created_at|date:"Y-m-d H:i" }}</small><br>
-        {{ c.text }}
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            <small class="text-muted">{{ c.created_at|date:"Y-m-d H:i" }}</small>
+            <p class="mt-2 mb-0">{{ c.text|linebreaks }}</p>
+          </div>
+          <form method="post" action="{% url 'music:delete_comment' c.id %}" class="ms-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger" 
+                    onclick="return confirm('确定要删除这条评论吗？')">删除</button>
+          </form>
+        </div>
       </div>
-      <form method="post" action="{% url 'music:delete_comment' c.id %}">
-        {% csrf_token %}
-        <button class="btn btn-sm btn-danger">删除</button>
-      </form>
-    </li>
+    </div>
   {% empty %}
-    <li class="list-group-item">暂无评论。</li>
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle"></i> 还没有评论，快来发表第一条评论吧！
+    </div>
   {% endfor %}
-</ul>
+</div>
+
+<!-- 如果评论太多，可以添加分页 -->
+{% if comments.count > 10 %}
+  <div class="text-center mt-4">
+    <p class="text-muted">显示最近 {{ comments.count }} 条评论</p>
+  </div>
+{% endif %}
+
 {% endblock %}

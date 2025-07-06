@@ -7,7 +7,7 @@ SECRET_KEY = "hello_Django"
 DEBUG = True
 ALLOWED_HOSTS = []
 
-INSTALLED_APPS = [
+INSTALLED_APPS = [      # Django 内置应用
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -17,7 +17,7 @@ INSTALLED_APPS = [
     "music",           
 ]
 
-MIDDLEWARE = [
+MIDDLEWARE = [      # Django 中间件
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -26,8 +26,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
 ]
 
-ROOT_URLCONF = "musicbrowser.urls"
-TEMPLATES = [{
+ROOT_URLCONF = "musicbrowser.urls"  # URL 路由配置
+TEMPLATES = [{  # 模板配置
     "BACKEND": "django.template.backends.django.DjangoTemplates",
     "DIRS": [BASE_DIR / "templates"],
     "APP_DIRS": True,
