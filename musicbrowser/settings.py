@@ -2,7 +2,7 @@ from pathlib import Path
 import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+OUT_DIR = BASE_DIR / "output"
 SECRET_KEY = "hello_Django"
 DEBUG = True
 ALLOWED_HOSTS = []
