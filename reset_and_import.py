@@ -68,6 +68,7 @@ def reset_and_import():
     # === 新增：读取 artists.json，构建别名到主名的映射 ===
     global artist_alias_to_main
     artist_alias_to_main = {}
+    artist_source_urls = {}  # 新增：存储歌手名到source_url的映射
     artist_json_path = os.path.join(settings.BASE_DIR, 'output', 'artists.json')
     if os.path.exists(artist_json_path):
         with open(artist_json_path, 'r', encoding='utf-8') as f:
@@ -82,6 +83,8 @@ def reset_and_import():
                     alias = alias.strip()
                     if alias:
                         artist_alias_to_main[alias] = main_name
+                # 存储主名到source_url的映射
+                artist_source_urls[main_name] = artist_obj.get('source_url', '')
 
     json_file_path = os.path.join(settings.BASE_DIR, 'output', 'songs.json')
     try:
@@ -139,7 +142,7 @@ def reset_and_import():
                         name=main_artist_name,
                         biography=song_data.get('biography', ''),
                         profile_img=profile_img_path,
-                        source_url=song_data.get('artist_source_url', song_data['source_url'])
+                        source_url=artist_source_urls.get(main_artist_name, song_data['source_url'])
                     )
                     artists_created_count += 1
                 artist_cache[main_artist_name] = artist
