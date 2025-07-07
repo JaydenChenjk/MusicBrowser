@@ -201,6 +201,15 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Project specific ignores
+output/
+*.json
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
