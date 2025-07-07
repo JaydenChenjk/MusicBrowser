@@ -65,7 +65,7 @@ def reset_and_import():
     Artist.objects.all().delete()
     print("数据库已清空！\n开始导入数据...")
 
-    # === 新增：读取 artists.json，构建别名到主名的映射 ===
+    # 新增：读取 artists.json，构建别名到主名的映射
     global artist_alias_to_main
     artist_alias_to_main = {}
     artist_source_urls = {}  # 新增：存储歌手名到source_url的映射
@@ -126,7 +126,7 @@ def reset_and_import():
             expected_song_img = f"{safe_song_name}.jpg"
             artist_img_dir = os.path.join(settings.MEDIA_ROOT, "artist_images")
             song_img_dir = os.path.join(settings.MEDIA_ROOT, "song_images")
-            # === 用 fuzzy 匹配 artist 图片 ===
+            # 用 fuzzy 匹配 artist 图片
             found_artist_img = fuzzy_find_file(artist_img_dir, main_artist_name)
             found_song_img = find_file_case_insensitive(song_img_dir, expected_song_img)
             profile_img_path = f"artist_images/{found_artist_img}" if found_artist_img else ""

@@ -15,14 +15,14 @@ from django.utils.text import slugify
 import re
 import string
 
-def _paginate(request, queryset, per_page=20):
+def _paginate(request, queryset, per_page=20):  # 分页函数，处理分页逻辑
     page_number = request.GET.get("page", "1")
     paginator = Paginator(queryset, per_page)
     page_obj = paginator.get_page(page_number)
     return page_obj
 
 
-def song_list(request):
+def song_list(request):  # 歌曲列表页面视图，显示所有歌曲并支持搜索
     search_form = SearchForm(request.GET)
     songs = Song.objects.select_related("artist").all()
     
@@ -40,7 +40,7 @@ def song_list(request):
     })
 
 
-def song_detail(request, pk):
+def song_detail(request, pk):  # 歌曲详情页面视图，显示歌曲信息和评论功能
     song = get_object_or_404(Song.objects.select_related("artist"), pk=pk)
     
     # 调试信息
@@ -72,11 +72,11 @@ def song_detail(request, pk):
     })
 
 
-def add_comment(request, song_id):
+def add_comment(request, song_id):  # 添加评论，重定向到歌曲详情页
     return redirect(reverse("music:song_detail", args=[song_id]))
 
 
-def delete_comment(request, pk):
+def delete_comment(request, pk):  # 删除评论
     if request.method == "POST":
         comment = get_object_or_404(Comment, pk=pk)
         song_id = comment.song_id
@@ -86,13 +86,13 @@ def delete_comment(request, pk):
     return redirect("/")
 
 
-def artist_list(request):
+def artist_list(request):  # 歌手列表页面视图，显示所有歌手并支持搜索
     search_form = SearchForm(request.GET)
     artists = Artist.objects.all()
     
     # 调试信息：检查歌手图片路径
     if settings.DEBUG:
-        for artist in artists[:3]:  # 只检查前3个
+        for artist in artists[:3]:  
             if artist.profile_img:
                 file_path = os.path.join(settings.MEDIA_ROOT, artist.profile_img.name)
                 print(f"歌手 {artist.name}: 图片路径 {artist.profile_img.name}, 文件存在: {os.path.exists(file_path)}")
@@ -104,7 +104,7 @@ def artist_list(request):
     })
 
 
-def artist_detail(request, pk):
+def artist_detail(request, pk):  # 歌手详情页面视图，显示歌手信息和相关歌曲
     artist = get_object_or_404(Artist, pk=pk)
     songs = artist.songs.all()
     search_form = SearchForm(request.GET)
@@ -121,7 +121,7 @@ def artist_detail(request, pk):
     })
 
 
-def search(request):
+def search(request):  # 搜索功能视图，支持歌曲和歌手的模糊搜索
     form = SearchForm(request.GET)
     if form.is_valid():
         q = form.cleaned_data["q"].strip()
@@ -155,7 +155,7 @@ def search(request):
         "search_form": form,
     })
 
-def add_songs_from_json(request):
+def add_songs_from_json(request):  # 数据导入视图，从JSON文件批量导入歌曲和歌手数据
     """
     从 output/songs.json 文件读取数据并添加到数据库
     只用主歌手名，图片路径只写本地存在的。
@@ -163,7 +163,7 @@ def add_songs_from_json(request):
     # 构建 songs.json 文件的绝对路径
     json_file_path = os.path.join(settings.BASE_DIR, 'output', 'songs.json')
 
-    # === 新增：读取 artists.json，构建别名到主名的映射 ===
+    # 新增：读取 artists.json，构建别名到主名的映射
     artist_alias_to_main = {}
     artist_json_path = os.path.join(settings.BASE_DIR, 'output', 'artists.json')
     if os.path.exists(artist_json_path):
@@ -180,14 +180,13 @@ def add_songs_from_json(request):
                     if alias:
                         artist_alias_to_main[alias] = main_name
 
-    def normalize_name(name):
-        # 小写，去除空格、下划线、连字符、标点
+    def normalize_name(name):  # 标准化名称用于模糊匹配，去除特殊字符和空格
         name = name.lower()
         name = name.replace(' ', '').replace('_', '').replace('-', '')
         name = ''.join(c for c in name if c not in string.punctuation)
         return name
 
-    def fuzzy_find_file(directory, artist_name):
+    def fuzzy_find_file(directory, artist_name):  # 模糊查找文件函数，根据歌手名在目录中查找匹配的图片文件
         if not os.path.exists(directory):
             return None
         norm_artist = normalize_name(artist_name)
@@ -218,8 +217,7 @@ def add_songs_from_json(request):
     except Exception as e:
         return HttpResponse(f"读取文件时发生错误：{str(e)}", status=500)
 
-    def get_main_artist(artist_name):
-        # 分割所有候选名
+    def get_main_artist(artist_name):  # 获取主歌手名函数，处理包含多个别名的歌手名称
         for candidate in re.split(r'[\/，,、\s]+', artist_name):
             candidate = candidate.strip()
             if candidate in artist_alias_to_main:
@@ -248,7 +246,7 @@ def add_songs_from_json(request):
             # 只用主歌手名
             main_artist_name = get_main_artist(song_data['artist_name'])
 
-            def safe_filename(name):
+            def safe_filename(name):  # 生成安全的文件名，替换不安全的字符为下划线
                 safe_name = name.replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
                 return safe_name.strip()
             safe_artist_name = safe_filename(main_artist_name)
@@ -260,10 +258,10 @@ def add_songs_from_json(request):
             artist_img_dir = os.path.join(settings.MEDIA_ROOT, "artist_images")
             song_img_dir = os.path.join(settings.MEDIA_ROOT, "song_images")
 
-            # === 用 fuzzy 匹配 artist 图片 ===
+            # 用 fuzzy 匹配 artist 图片
             found_artist_img = fuzzy_find_file(artist_img_dir, main_artist_name)
             # 歌曲图片可继续用原来的严格匹配
-            def find_file_case_insensitive(directory, filename):
+            def find_file_case_insensitive(directory, filename):  # 大小写不敏感的文件查找函数，用于歌曲图片匹配
                 if not os.path.exists(directory):
                     return None
                 filename_lower = filename.lower()
