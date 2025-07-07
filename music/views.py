@@ -13,6 +13,7 @@ from .models import Song, Artist, Comment
 from .forms import CommentForm, SearchForm
 from django.utils.text import slugify
 import re
+import string
 
 def _paginate(request, queryset, per_page=20):
     page_number = request.GET.get("page", "1")
@@ -162,6 +163,43 @@ def add_songs_from_json(request):
     # 构建 songs.json 文件的绝对路径
     json_file_path = os.path.join(settings.BASE_DIR, 'output', 'songs.json')
 
+    # === 新增：读取 artists.json，构建别名到主名的映射 ===
+    artist_alias_to_main = {}
+    artist_json_path = os.path.join(settings.BASE_DIR, 'output', 'artists.json')
+    if os.path.exists(artist_json_path):
+        with open(artist_json_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                artist_obj = json.loads(line)
+                # 主名为第一个
+                main_name = re.split(r'[\/，,、\s]+', artist_obj['name'])[0].strip()
+                # 分割所有别名
+                for alias in re.split(r'[\/，,、\s]+', artist_obj['name']):
+                    alias = alias.strip()
+                    if alias:
+                        artist_alias_to_main[alias] = main_name
+
+    def normalize_name(name):
+        # 小写，去除空格、下划线、连字符、标点
+        name = name.lower()
+        name = name.replace(' ', '').replace('_', '').replace('-', '')
+        name = ''.join(c for c in name if c not in string.punctuation)
+        return name
+
+    def fuzzy_find_file(directory, artist_name):
+        if not os.path.exists(directory):
+            return None
+        norm_artist = normalize_name(artist_name)
+        for file in os.listdir(directory):
+            if not file.lower().endswith('.jpg'):
+                continue
+            norm_file = normalize_name(os.path.splitext(file)[0])
+            # 只要 artist 名在文件名里，或文件名在 artist 名里
+            if norm_artist in norm_file or norm_file in norm_artist:
+                return file
+        return None
+
     try:
         # 逐行读取JSON文件（每行一个JSON对象）
         data = []
@@ -180,18 +218,14 @@ def add_songs_from_json(request):
     except Exception as e:
         return HttpResponse(f"读取文件时发生错误：{str(e)}", status=500)
 
-    def find_file_case_insensitive(directory, filename):
-        if not os.path.exists(directory):
-            return None
-        filename_lower = filename.lower()
-        for file in os.listdir(directory):
-            if file.lower() == filename_lower:
-                return file
-        return None
-
     def get_main_artist(artist_name):
-        # 只取第一个歌手名，分隔符包括 / ， ,
-        return re.split(r'[\/，,]', artist_name)[0].strip()
+        # 分割所有候选名
+        for candidate in re.split(r'[\/，,、\s]+', artist_name):
+            candidate = candidate.strip()
+            if candidate in artist_alias_to_main:
+                return artist_alias_to_main[candidate]
+        # 如果都找不到，fallback：取第一个
+        return re.split(r'[\/，,、\s]+', artist_name)[0].strip()
 
     songs_added_count = 0
     songs_updated_count = 0
@@ -226,7 +260,17 @@ def add_songs_from_json(request):
             artist_img_dir = os.path.join(settings.MEDIA_ROOT, "artist_images")
             song_img_dir = os.path.join(settings.MEDIA_ROOT, "song_images")
 
-            found_artist_img = find_file_case_insensitive(artist_img_dir, expected_artist_img)
+            # === 用 fuzzy 匹配 artist 图片 ===
+            found_artist_img = fuzzy_find_file(artist_img_dir, main_artist_name)
+            # 歌曲图片可继续用原来的严格匹配
+            def find_file_case_insensitive(directory, filename):
+                if not os.path.exists(directory):
+                    return None
+                filename_lower = filename.lower()
+                for file in os.listdir(directory):
+                    if file.lower() == filename_lower:
+                        return file
+                return None
             found_song_img = find_file_case_insensitive(song_img_dir, expected_song_img)
 
             profile_img_path = f"artist_images/{found_artist_img}" if found_artist_img else ""
