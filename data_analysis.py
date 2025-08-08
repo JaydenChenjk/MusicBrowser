@@ -81,7 +81,7 @@ def lyrics_wordcloud(songs_data):
         print("所有字体均失败，未生成歌词词云。")
 
 def avg_line_length_hist(songs_data):
-    print("\n=== 歌曲平均句长分布统计（中文按字符，英文按单词） ===")
+    print("\n=== 歌曲平均句长分布统计（中文按汉字数，英文按单词数） ===")
     zh_avg_lengths = []
     en_avg_lengths = []
     for song in songs_data:
@@ -94,21 +94,17 @@ def avg_line_length_hist(songs_data):
             en_chars = len(re.findall(r'[A-Za-z]', all_text))
             total_chars = len(all_text)
             zh_ratio = zh_chars / (total_chars + 1e-6)
-            en_ratio = en_chars / (total_chars + 1e-6)
-            # 中文歌：汉字比例>0.3且英文比例<0.3
+            en_ratio = en_chars / (total_chars + 1e-6)  # 中文歌：汉字比例>0.3且英文比例<0.3
             if zh_ratio > 0.3 and en_ratio < 0.3:
                 avg_len = np.mean([len(re.findall(r'[\u4e00-\u9fa5]', line)) for line in lines])
-                zh_avg_lengths.append(avg_len)
-            # 英文歌：英文比例>0.3且汉字比例<0.1
+                zh_avg_lengths.append(avg_len)  # 英文歌：英文比例>0.3且汉字比例<0.1
             elif en_ratio > 0.3 and zh_ratio < 0.1:
                 avg_len = np.mean([len(re.findall(r'[A-Za-z]+', line)) for line in lines])
-                en_avg_lengths.append(avg_len)
-            # 其他语言跳过
-    # 中文直方图
-    if zh_avg_lengths:
+                en_avg_lengths.append(avg_len)  # 其他语言跳过
+    if zh_avg_lengths:  # 中文直方图
         plt.figure(figsize=(8,5))
-        plt.hist(zh_avg_lengths, bins=np.arange(4, 18, 0.5), color='#4e79a7', edgecolor='black', alpha=0.8)
-        plt.xlabel('每首歌平均汉字数')
+        plt.hist(zh_avg_lengths, bins=np.arange(4, 17, 0.5), color='#4e79a7', edgecolor='black', alpha=0.8)
+        plt.xlabel('每句平均汉字数')
         plt.ylabel('歌曲数')
         plt.title('中文歌每首歌平均句长分布')
         plt.tight_layout()
@@ -116,11 +112,10 @@ def avg_line_length_hist(songs_data):
         print("已保存中文歌每首歌平均句长分布直方图：zh_avg_line_length_hist.png")
     else:
         print("无中文歌曲数据")
-    # 英文直方图
-    if en_avg_lengths:
+    if en_avg_lengths:  # 英文直方图
         plt.figure(figsize=(8,5))
-        plt.hist(en_avg_lengths, bins=np.arange(2, 15.5, 0.5), color='#f28e2b', edgecolor='black', alpha=0.8)
-        plt.xlabel('每首歌平均单词数')
+        plt.hist(en_avg_lengths, bins=np.arange(2, 15, 0.5), color='#f28e2b', edgecolor='black', alpha=0.8)
+        plt.xlabel('每句平均单词数')
         plt.ylabel('歌曲数')
         plt.title('英文歌每首歌平均句长分布')
         plt.tight_layout()
@@ -165,6 +160,118 @@ def top_words_bar(songs_data):
     else:
         print("无有效词语数据")
 
+def award_analysis(artists_data):
+    print("\n=== 歌手获奖情况分析 ===")
+    
+    # 定义获奖相关词汇（中英文合并）
+    award_keywords = [
+        # 中文获奖词汇
+        '奖', '获奖', '得奖', '提名', '冠军', '亚军', '季军', '金牌', '银牌', '铜牌', 
+        '最佳', '优秀', '杰出', '卓越', '突出', '贡献', '成就', '荣誉', '称号',
+        '格莱美', '奥斯卡', '金曲奖', '金马奖', '金像奖', '金钟奖', '金鹰奖', '百花奖',
+        '华表奖', '飞天奖', '白玉兰', '金鸡奖', '金棕榈', '金熊奖', '金狮奖', '金球奖',
+        # 英文获奖词汇
+        'award', 'awards', 'winner', 'winning', 'won', 'nomination', 'nominated', 
+        'champion', 'championship', 'gold', 'silver', 'bronze', 'medal', 'medals',
+        'best', 'excellent', 'outstanding', 'distinguished', 'achievement', 'achievements',
+        'honor', 'honors', 'honour', 'honours', 'recognition',
+        'grammy', 'oscar', 'emmy', 'tony', 'pulitzer', 'nobel', 'academy', 'academies'
+    ]
+    
+    # 统计每个歌手的获奖词汇出现次数
+    artist_award_counts = []
+    
+    for artist in artists_data:
+        if 'biography' in artist and artist['biography']:
+            bio_text = artist['biography'].lower()
+            total_count = 0
+            
+            # 统计所有获奖词汇的出现次数
+            for keyword in award_keywords:
+                count = bio_text.count(keyword.lower())
+                total_count += count
+            
+            if total_count > 0:
+                artist_award_counts.append({
+                    'name': artist['name'],
+                    'count': total_count
+                })
+    
+    print(f"有获奖信息的艺术家数量: {len(artist_award_counts)}")
+    
+    if artist_award_counts:
+        # 统计获奖次数分布
+        count_distribution = {}
+        for artist in artist_award_counts:
+            count = artist['count']
+            count_distribution[count] = count_distribution.get(count, 0) + 1
+        
+        # 按指定区间重新分组
+        def get_group(count):
+            if count == 1: return "1"
+            elif count == 2: return "2"
+            elif count == 3: return "3"
+            elif count == 4: return "4"
+            elif count == 5: return "5"
+            elif 6 <= count <= 10: return "6-10"
+            elif 11 <= count <= 30: return "11-30"
+            elif 31 <= count <= 50: return "31-50"
+            else: return "50+"
+        
+        # 重新统计分组后的分布
+        group_distribution = {}
+        for artist in artist_award_counts:
+            group = get_group(artist['count'])
+            group_distribution[group] = group_distribution.get(group, 0) + 1
+        
+        # 按指定顺序排列
+        group_order = ["1", "2", "3", "4", "5", "6-10", "11-30", "31-50", "50+"]
+        groups = []
+        numbers = []
+        for group in group_order:
+            if group in group_distribution:
+                groups.append(group)
+                numbers.append(group_distribution[group])
+        
+        # 可视化：获奖次数分布柱状图
+        plt.figure(figsize=(12, 8))
+        bars = plt.bar(groups, numbers, color='#e15759', alpha=0.8, edgecolor='black')
+        plt.xlabel('获奖词汇出现次数')
+        plt.ylabel('歌手数量')
+        plt.title('歌手简介中获奖词汇出现次数分布')
+        plt.grid(True, alpha=0.3)
+        
+        # 在柱子上显示数值
+        for bar, count in zip(bars, numbers):
+            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1, 
+                    str(count), ha='center', va='bottom', fontsize=10, fontweight='bold')
+        
+        plt.tight_layout()
+        plt.savefig('award_count_distribution.png', dpi=300, bbox_inches='tight')
+        print("已保存获奖次数分布图：award_count_distribution.png")
+        
+        # 统计信息
+        all_counts = [artist['count'] for artist in artist_award_counts]
+        print(f"获奖词汇出现次数统计:")
+        print(f"平均次数: {np.mean(all_counts):.2f}")
+        print(f"中位数: {np.median(all_counts):.2f}")
+        print(f"最多次数: {max(all_counts)}")
+        print(f"最少次数: {min(all_counts)}")
+        
+        # 输出获奖最多的歌手TOP5
+        sorted_artists = sorted(artist_award_counts, key=lambda x: x['count'], reverse=True)
+        print("\n获奖词汇最多的歌手TOP5:")
+        for i, artist in enumerate(sorted_artists[:5], 1):
+            print(f"{i}. {artist['name']}: {artist['count']} 次")
+        
+        # 输出分组分布详情
+        print("\n获奖次数分布详情:")
+        for group in group_order:
+            if group in group_distribution:
+                print(f"出现{group}次获奖词汇的歌手: {group_distribution[group]}人")
+    else:
+        print("没有找到包含获奖信息的歌手")
+
 def main():
     print("网易云音乐数据分析开始...")
     try:
@@ -172,12 +279,14 @@ def main():
         lyrics_wordcloud(songs_data)
         top_words_bar(songs_data)
         avg_line_length_hist(songs_data)
+        award_analysis(artists_data)
         print("\n=== 分析完成 ===")
         print("生成的图表文件:")
         print("- lyrics_wordcloud.png")
         print("- top_words_bar.png")
         print("- zh_avg_line_length_hist.png")
         print("- en_avg_line_length_hist.png")
+        print("- award_count_distribution.png")
     except Exception as e:
         print(f"分析过程中出现错误: {e}")
         import traceback
